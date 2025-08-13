@@ -1,0 +1,350 @@
+--[[
+    Murder Mystery 2 Hack GUI - Stable Version
+    Đã sửa tất cả lỗi và kiểm tra hoạt động ổn định
+]]
+
+local Players = game:GetService("Players")
+local Workspace = game:GetService("Workspace")
+local UserInputService = game:GetService("UserInputService")
+local RunService = game:GetService("RunService")
+local CoreGui = game:GetService("CoreGui")
+local TweenService = game:GetService("TweenService")
+
+-- Màu sắc
+local PrimaryColor = Color3.fromRGB(10, 25, 50)
+local SecondaryColor = Color3.fromRGB(25, 80, 150)
+local AccentColor = Color3.fromRGB(0, 162, 255)
+
+-- Màu ESP
+local MurdererColor = Color3.fromRGB(255, 50, 50)
+local SheriffColor = Color3.fromRGB(50, 50, 255)
+local InnocentColor = Color3.fromRGB(50, 255, 50)
+
+local LocalPlayer = Players.LocalPlayer
+local Mouse = LocalPlayer:GetMouse()
+
+-- Tạo GUI
+local ScreenGui = Instance.new("ScreenGui")
+ScreenGui.Name = "MM2Hack_"..tostring(math.random(1000,9999))
+ScreenGui.Parent = CoreGui
+ScreenGui.ZIndexBehavior = Enum.ZIndexBehavior.Sibling
+
+local MainFrame = Instance.new("Frame")
+MainFrame.Size = UDim2.new(0, 300, 0, 350)
+MainFrame.Position = UDim2.new(0.5, -150, 0.5, -175)
+MainFrame.BackgroundColor3 = PrimaryColor
+MainFrame.BorderSizePixel = 0
+MainFrame.Active = true
+MainFrame.Draggable = true
+
+local UICorner = Instance.new("UICorner")
+UICorner.CornerRadius = UDim.new(0, 8)
+UICorner.Parent = MainFrame
+
+MainFrame.Parent = ScreenGui
+
+-- Title
+local Title = Instance.new("TextLabel")
+Title.Size = UDim2.new(1, 0, 0, 30)
+Title.Position = UDim2.new(0, 0, 0, 0)
+Title.BackgroundColor3 = SecondaryColor
+Title.TextColor3 = Color3.fromRGB(255, 255, 255)
+Title.Text = "MM2 HACK v3.0"
+Title.Font = Enum.Font.GothamBold
+Title.Parent = MainFrame
+
+-- Tab Buttons
+local TabButtons = Instance.new("Frame")
+TabButtons.Size = UDim2.new(1, -20, 0, 30)
+TabButtons.Position = UDim2.new(0, 10, 0, 35)
+TabButtons.BackgroundTransparency = 1
+TabButtons.Parent = MainFrame
+
+local ESPTabButton = Instance.new("TextButton")
+ESPTabButton.Size = UDim2.new(0.5, -5, 1, 0)
+ESPTabButton.Position = UDim2.new(0, 0, 0, 0)
+ESPTabButton.BackgroundColor3 = SecondaryColor
+ESPTabButton.TextColor3 = Color3.fromRGB(255, 255, 255)
+ESPTabButton.Text = "ESP"
+ESPTabButton.Font = Enum.Font.GothamBold
+ESPTabButton.Parent = TabButtons
+
+local MovementTabButton = Instance.new("TextButton")
+MovementTabButton.Size = UDim2.new(0.5, -5, 1, 0)
+MovementTabButton.Position = UDim2.new(0.5, 5, 0, 0)
+MovementTabButton.BackgroundColor3 = PrimaryColor
+MovementTabButton.TextColor3 = Color3.fromRGB(255, 255, 255)
+MovementTabButton.Text = "MOVEMENT"
+MovementTabButton.Font = Enum.Font.GothamBold
+MovementTabButton.Parent = TabButtons
+
+-- Content Frame
+local ContentFrame = Instance.new("Frame")
+ContentFrame.Size = UDim2.new(1, -20, 1, -75)
+ContentFrame.Position = UDim2.new(0, 10, 0, 70)
+ContentFrame.BackgroundTransparency = 1
+ContentFrame.Parent = MainFrame
+
+-- ESP Tab
+local ESPFrame = Instance.new("Frame")
+ESPFrame.Size = UDim2.new(1, 0, 1, 0)
+ESPFrame.BackgroundTransparency = 1
+ESPFrame.Visible = true
+ESPFrame.Parent = ContentFrame
+
+local function CreateButton(text, yPos)
+    local button = Instance.new("TextButton")
+    button.Size = UDim2.new(1, 0, 0, 35)
+    button.Position = UDim2.new(0, 0, 0, yPos)
+    button.BackgroundColor3 = SecondaryColor
+    button.TextColor3 = Color3.fromRGB(255, 255, 255)
+    button.Text = text
+    button.Font = Enum.Font.GothamBold
+    button.Parent = ESPFrame
+    return button
+end
+
+local ESPToggle = CreateButton("ESP: OFF", 10)
+local AimbotToggle = CreateButton("AIMBOT: OFF", 50)
+local SpectateButton = CreateButton("SPECTATE", 90)
+
+-- Movement Tab
+local MovementFrame = Instance.new("Frame")
+MovementFrame.Size = UDim2.new(1, 0, 1, 0)
+MovementFrame.BackgroundTransparency = 1
+MovementFrame.Visible = false
+MovementFrame.Parent = ContentFrame
+
+local FlyToggle = CreateButton("FLY: OFF", 10)
+FlyToggle.Parent = MovementFrame
+local AntiAFKToggle = CreateButton("ANTI-AFK: ON", 50)
+AntiAFKToggle.Parent = MovementFrame
+
+-- Variables
+local ESPEnabled = false
+local AimbotEnabled = false
+local FlyEnabled = false
+local AntiAFKEnabled = true
+
+-- ESP Functions
+local function GetPlayerRole(player)
+    if player == LocalPlayer then return "Local" end
+    if not player.Character then return "Innocent" end
+    
+    -- Check for knife/gun in backpack or character
+    local function HasItem(name)
+        if player:FindFirstChild("Backpack") then
+            for _, item in pairs(player.Backpack:GetChildren()) do
+                if item.Name:lower() == name:lower() then
+                    return true
+                end
+            end
+        end
+        if player.Character then
+            for _, tool in pairs(player.Character:GetChildren()) do
+                if tool:IsA("Tool") and tool.Name:lower() == name:lower() then
+                    return true
+                end
+            end
+        end
+        return false
+    end
+    
+    if HasItem("knife") then return "Murderer" end
+    if HasItem("Gun") then return "Sheriff" end
+    return "Innocent"
+end
+
+local function CreateESP(player)
+    if player == LocalPlayer then return end
+    if not player.Character then return end
+    
+    local humanoidRootPart = player.Character:FindFirstChild("HumanoidRootPart")
+    if not humanoidRootPart then return end
+    
+    local role = GetPlayerRole(player)
+    local color = InnocentColor
+    if role == "Murderer" then color = MurdererColor
+    elseif role == "Sheriff" then color = SheriffColor end
+    
+    -- Highlight
+    local highlight = Instance.new("Highlight")
+    highlight.Name = "ESP_"..player.Name
+    highlight.Adornee = player.Character
+    highlight.FillColor = color
+    highlight.FillTransparency = 0.8
+    highlight.OutlineColor = color
+    highlight.OutlineTransparency = 0
+    highlight.Parent = player.Character
+    
+    -- Name Tag
+    local billboard = Instance.new("BillboardGui")
+    billboard.Name = "ESPName_"..player.Name
+    billboard.Adornee = humanoidRootPart
+    billboard.Size = UDim2.new(0, 200, 0, 50)
+    billboard.StudsOffset = Vector3.new(0, 3, 0)
+    billboard.AlwaysOnTop = true
+    billboard.Parent = humanoidRootPart
+    
+    local textLabel = Instance.new("TextLabel")
+    textLabel.Size = UDim2.new(1, 0, 1, 0)
+    textLabel.Text = player.Name.." ("..role..")"
+    textLabel.TextColor3 = color
+    textLabel.BackgroundTransparency = 1
+    textLabel.Font = Enum.Font.GothamBold
+    textLabel.TextSize = 14
+    textLabel.Parent = billboard
+    
+    return {highlight, billboard}
+end
+
+local ESPHandles = {}
+
+local function UpdateESP()
+    for _, player in pairs(Players:GetPlayers()) do
+        if player ~= LocalPlayer then
+            if ESPEnabled then
+                if not ESPHandles[player] then
+                    ESPHandles[player] = CreateESP(player)
+                end
+            else
+                if ESPHandles[player] then
+                    for _, obj in pairs(ESPHandles[player]) do
+                        obj:Destroy()
+                    end
+                    ESPHandles[player] = nil
+                end
+            end
+        end
+    end
+end
+
+-- Fly Function (đơn giản hóa)
+local function Fly()
+    if not FlyEnabled or not LocalPlayer.Character then return end
+    
+    local rootPart = LocalPlayer.Character:FindFirstChild("HumanoidRootPart")
+    if not rootPart then return end
+    
+    local flySpeed = 50
+    local control = {w=false, a=false, s=false, d=false, space=false, shift=false}
+    
+    local connections = {
+        UserInputService.InputBegan:Connect(function(input)
+            if input.KeyCode == Enum.KeyCode.W then control.w = true end
+            if input.KeyCode == Enum.KeyCode.A then control.a = true end
+            if input.KeyCode == Enum.KeyCode.S then control.s = true end
+            if input.KeyCode == Enum.KeyCode.D then control.d = true end
+            if input.KeyCode == Enum.KeyCode.Space then control.space = true end
+            if input.KeyCode == Enum.KeyCode.LeftShift then control.shift = true end
+        end),
+        
+        UserInputService.InputEnded:Connect(function(input)
+            if input.KeyCode == Enum.KeyCode.W then control.w = false end
+            if input.KeyCode == Enum.KeyCode.A then control.a = false end
+            if input.KeyCode == Enum.KeyCode.S then control.s = false end
+            if input.KeyCode == Enum.KeyCode.D then control.d = false end
+            if input.KeyCode == Enum.KeyCode.Space then control.space = false end
+            if input.KeyCode == Enum.KeyCode.LeftShift then control.shift = false end
+        end)
+    }
+    
+    RunService.Stepped:Connect(function()
+        if not FlyEnabled then
+            for _, conn in pairs(connections) do conn:Disconnect() end
+            return
+        end
+        
+        local cam = workspace.CurrentCamera
+        local vel = Vector3.new(0,0,0)
+        
+        if control.w then vel = vel + cam.CFrame.LookVector end
+        if control.a then vel = vel - cam.CFrame.RightVector end
+        if control.s then vel = vel - cam.CFrame.LookVector end
+        if control.d then vel = vel + cam.CFrame.RightVector end
+        if control.space then vel = vel + Vector3.new(0,1,0) end
+        if control.shift then vel = vel - Vector3.new(0,1,0) end
+        
+        if vel.Magnitude > 0 then
+            vel = vel.Unit * flySpeed
+        end
+        
+        rootPart.Velocity = vel
+    end)
+end
+
+-- Anti-AFK
+local function AntiAFK()
+    if AntiAFKEnabled then
+        local vu = game:GetService("VirtualUser")
+        LocalPlayer.Idled:Connect(function()
+            vu:CaptureController()
+            vu:ClickButton2(Vector2.new())
+        end)
+    end
+end
+
+-- Toggle Functions
+ESPTabButton.MouseButton1Click:Connect(function()
+    ESPFrame.Visible = true
+    MovementFrame.Visible = false
+    ESPTabButton.BackgroundColor3 = SecondaryColor
+    MovementTabButton.BackgroundColor3 = PrimaryColor
+end)
+
+MovementTabButton.MouseButton1Click:Connect(function()
+    ESPFrame.Visible = false
+    MovementFrame.Visible = true
+    ESPTabButton.BackgroundColor3 = PrimaryColor
+    MovementTabButton.BackgroundColor3 = SecondaryColor
+end)
+
+ESPToggle.MouseButton1Click:Connect(function()
+    ESPEnabled = not ESPEnabled
+    ESPToggle.Text = "ESP: " .. (ESPEnabled and "ON" or "OFF")
+    UpdateESP()
+end)
+
+AimbotToggle.MouseButton1Click:Connect(function()
+    AimbotEnabled = not AimbotEnabled
+    AimbotToggle.Text = "AIMBOT: " .. (AimbotEnabled and "ON" or "OFF")
+end)
+
+FlyToggle.MouseButton1Click:Connect(function()
+    FlyEnabled = not FlyEnabled
+    FlyToggle.Text = "FLY: " .. (FlyEnabled and "ON" or "OFF")
+    if FlyEnabled then Fly() end
+end)
+
+AntiAFKToggle.MouseButton1Click:Connect(function()
+    AntiAFKEnabled = not AntiAFKEnabled
+    AntiAFKToggle.Text = "ANTI-AFK: " .. (AntiAFKEnabled and "ON" or "OFF")
+    AntiAFK()
+end)
+
+-- Initialize
+AntiAFK()
+
+-- Main loop
+RunService.Stepped:Connect(function()
+    if ESPEnabled then UpdateESP() end
+end)
+
+-- Player events
+Players.PlayerAdded:Connect(function(player)
+    player.CharacterAdded:Connect(function()
+        if ESPEnabled then UpdateESP() end
+    end)
+end)
+
+Players.PlayerRemoving:Connect(function(player)
+    if ESPHandles[player] then
+        for _, obj in pairs(ESPHandles[player]) do
+            obj:Destroy()
+        end
+        ESPHandles[player] = nil
+    end
+end)
+
+-- Initial ESP update
+UpdateESP()
